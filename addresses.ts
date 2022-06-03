@@ -1,0 +1,6 @@
+export const ACDMPlatform = ""
+export const ACDMToken = "0x2d8ecB8Dd7a70E49f70F5224AF7573078Ec20052"
+export const DAOVotings = ""
+export const Staking = "0xE189b83A668E41231af9753705748261018AC59C"
+export const XXXToken = "0x125281199964620d35d63886F492b79415926661"
+export const UNIV2 = "0xda6F7786E2b62DdD7d1dD848902Cc49b68805e0a"
