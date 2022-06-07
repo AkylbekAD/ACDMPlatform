@@ -45,7 +45,7 @@ export default function() {
     await StakingInterface.deployed()
 
     DAOVotings = await ethers.getContractFactory("DAOVotings"); 
-    DAOVotingsInterface = await DAOVotings.deploy(StakingInterface.address, TestLPTokenInterface.address, 100000);
+    DAOVotingsInterface = await DAOVotings.deploy(StakingInterface.address, 100000);
     await DAOVotingsInterface.deployed()
 
     // setting DAOVotings address for checking depositDuration

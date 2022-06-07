@@ -24,7 +24,7 @@ export default function() {
   let XXXTokenAddress = "0x125281199964620d35d63886F492b79415926661"
   let UNIV2Address = "0xda6F7786E2b62DdD7d1dD848902Cc49b68805e0a"
   let StakingAddress = "0xE189b83A668E41231af9753705748261018AC59c"
-  const oneLPToken: BigNumber = ethers.utils.parseUnits("1",18)
+  const oneLPToken: BigNumber = ethers.utils.parseEther("1")
 
   beforeEach(async function() {
     await ethers.provider.send("hardhat_impersonateAccount", ["0xa162b39f86a7341948a2e0a8dac3f0dff071d509"]);
@@ -38,6 +38,7 @@ export default function() {
     IUNIV2 = <IUniswapV2>(await ethers.getContractAt("IUniswapV2", UNIV2Address))
     Staking = <Staking>(await ethers.getContractAt("Staking", StakingAddress))
     XXXToken = <XXXToken>(await ethers.getContractAt("XXXToken", XXXTokenAddress))
+    await Staking.connect(TokenOwner).setDAOAddress(DAOVotingsInterface.address)
 
     await IUNIV2.connect(TokenOwner).transfer(user1.address, oneLPToken)
     await IUNIV2.connect(TokenOwner).transfer(user2.address, oneLPToken)
@@ -156,18 +157,15 @@ export default function() {
       await DAOVotingsInterface.startChairmanElection(user1.address, 259200)
 
       await IUNIV2.connect(TokenOwner).approve(Staking.address, oneLPToken)
-      expect(await Staking.LPTokenAddress()).to.be.equal(UNIV2Address)
       await Staking.connect(TokenOwner).stake(oneLPToken)
       await DAOVotingsInterface.connect(TokenOwner).vote(1, oneLPToken, true)
 
-      await IUNIV2.connect(TokenOwner).transfer(user1.address, oneLPToken)
       await IUNIV2.connect(user1).approve(Staking.address, oneLPToken)
       await Staking.connect(user1).stake(oneLPToken)
       await DAOVotingsInterface.connect(user1).vote(1, oneLPToken, true)
 
-      await IUNIV2.connect(TokenOwner).transfer(user2.address, oneLPToken)
       await IUNIV2.connect(user2).approve(Staking.address, oneLPToken)
-      await Staking.connect(user1).stake(oneLPToken)
+      await Staking.connect(user2).stake(oneLPToken)
       await DAOVotingsInterface.connect(user2).vote(1, oneLPToken, true)
 
       await passDurationTime();
@@ -189,7 +187,7 @@ export default function() {
       await Staking.connect(user1).stake(oneLPToken)
       
       await IUNIV2.connect(user2).approve(Staking.address, oneLPToken)
-      await Staking.connect(user1).stake(oneLPToken)
+      await Staking.connect(user2).stake(oneLPToken)
     });
 
     it("Amount can not be more then voting power(deposited tokens) of voter", async function() {
@@ -198,8 +196,8 @@ export default function() {
 
     it("User can not vote in already ended votings", async function() {
       await DAOVotingsInterface.connect(TokenOwner).vote(1, oneLPToken, false)
+      await DAOVotingsInterface.connect(user1).vote(1, oneLPToken, true)
       await DAOVotingsInterface.connect(user2).vote(1, oneLPToken, true)
-      await DAOVotingsInterface.connect(Admin).vote(1, oneLPToken, true)
       
       await passDurationTime();
       await DAOVotingsInterface.connect(user2).finishProposal(1)
@@ -207,12 +205,21 @@ export default function() {
       expect(DAOVotingsInterface.connect(user1).vote(1, oneLPToken, true)).to.be.revertedWith("Voting have been ended")
     })
 
-    it("Deposit duration of user should be equal to the last voted proposal debating duration period", async function() {
-      await DAOVotingsInterface.connect(user1).vote(1, oneLPToken, true)
+    it("If debating period time is more then unstake time, it would be updated to debating period", async function() {
+      const iface = new ethers.utils.Interface(["function transfer(address to, uint256 amount)"])
+      const callData = iface.encodeFunctionData('transfer',[user1.address,100])
+      await DAOVotingsInterface.addProposal(
+        "Give me 100 tokens",
+        999000,
+        XXXTokenAddress,
+        callData
+      )
+
+      await DAOVotingsInterface.connect(user1).vote(2, oneLPToken, true)
       const voterInfo = await Staking.stakingProviders(user1.address)
-      const lastBlockTime = await getLastBlockTime()
+      const proposalDuration = await DAOVotingsInterface.getProposal(2)
       
-      expect(+ethers.utils.formatUnits(voterInfo[2],0)).to.be.equal(259193 + lastBlockTime)
+      expect(+ethers.utils.formatUnits(voterInfo[2],0)).to.be.equal(+ethers.utils.formatUnits(proposalDuration[3],0))
     })
 
     it("User can not vote twice at one poposal voting", async function() {
@@ -235,8 +242,8 @@ export default function() {
       await DAOVotingsInterface.connect(user1).vote(1, oneLPToken, true)
       await DAOVotingsInterface.connect(user1).vote(2, oneLPToken, true)
 
-      expect(await DAOVotingsInterface.getVotes(1, user1.address)).to.be.equal("1000000000000000")
-      expect(await DAOVotingsInterface.getVotes(2, user1.address)).to.be.equal("1000000000000000")
+      expect(await DAOVotingsInterface.getVotes(1, user1.address)).to.be.equal("1000000000000000000")
+      expect(await DAOVotingsInterface.getVotes(2, user1.address)).to.be.equal("1000000000000000000")
     })
   })
 
@@ -247,6 +254,7 @@ export default function() {
       const iface = new ethers.utils.Interface(["function transfer(address to, uint256 amount)"])
       const callData = iface.encodeFunctionData('transfer',[user1.address,100])
 
+      await XXXToken.connect(TokenOwner).transfer(DAOVotingsInterface.address, ethers.utils.parseEther("100"))
       await DAOVotingsInterface.addProposal(
         "Give me 100 tokens",
         259200,
@@ -257,13 +265,11 @@ export default function() {
       await IUNIV2.connect(TokenOwner).approve(Staking.address, oneLPToken)
       await Staking.connect(TokenOwner).stake(oneLPToken)
       
-      await IUNIV2.connect(TokenOwner).transfer(user1.address, oneLPToken)
       await IUNIV2.connect(user1).approve(Staking.address, oneLPToken)
       await Staking.connect(user1).stake(oneLPToken)
       
-      await IUNIV2.connect(TokenOwner).transfer(user2.address, oneLPToken)
       await IUNIV2.connect(user2).approve(Staking.address, oneLPToken)
-      await Staking.connect(user1).stake(oneLPToken)
+      await Staking.connect(user2).stake(oneLPToken)
     });
 
     it("Revert if debationg period didnt pass", async function() {
@@ -273,7 +279,7 @@ export default function() {
     it("Revert if proposal was already finished and called", async function() {
       await DAOVotingsInterface.connect(user1).vote(2, oneLPToken, true)
       await DAOVotingsInterface.connect(user2).vote(2, oneLPToken, true)
-      await DAOVotingsInterface.connect(Admin).vote(2, oneLPToken, true)
+      await DAOVotingsInterface.connect(TokenOwner).vote(2, oneLPToken, true)
 
       await passDurationTime();
       await DAOVotingsInterface.connect(user2).finishProposal(2)
@@ -291,11 +297,9 @@ export default function() {
     })
 
     it("If conditions are met proposal would be called with callData", async function() {
-      await XXXToken.connect(TokenOwner).transfer(DAOVotingsInterface.address, 100)
-
       await DAOVotingsInterface.connect(user1).vote(2, oneLPToken, true)
       await DAOVotingsInterface.connect(user2).vote(2, oneLPToken, true)
-      await DAOVotingsInterface.connect(Admin).vote(2, oneLPToken, true)
+      await DAOVotingsInterface.connect(TokenOwner).vote(2, oneLPToken, true)
 
       await passDurationTime();
       await DAOVotingsInterface.connect(user2).finishProposal(2)
@@ -319,17 +323,15 @@ export default function() {
       await IUNIV2.connect(TokenOwner).approve(Staking.address, oneLPToken)
       await Staking.connect(TokenOwner).stake(oneLPToken)
       
-      await IUNIV2.connect(TokenOwner).transfer(user1.address, oneLPToken)
       await IUNIV2.connect(user1).approve(Staking.address, oneLPToken)
       await Staking.connect(user1).stake(oneLPToken)
       
-      await IUNIV2.connect(TokenOwner).transfer(user2.address, oneLPToken)
       await IUNIV2.connect(user2).approve(Staking.address, oneLPToken)
-      await Staking.connect(user1).stake(oneLPToken)
+      await Staking.connect(user2).stake(oneLPToken)
     });
 
     it("Should throw error 'SenderDontHasRights' with args", async function() {
-      expect(DAOVotingsInterface.connect(user1).increaseXXXprice(user1.address)).to.be.revertedWith("Must called throw proposal")
+      expect(DAOVotingsInterface.connect(user1).increaseXXXprice()).to.be.revertedWith("Must called throw proposal")
     })
 
     it("Should swap ETH for XXX tokens and burn them", async function() {
@@ -339,7 +341,7 @@ export default function() {
       })
       await DAOVotingsInterface.connect(user1).vote(1, oneLPToken, true)
       await DAOVotingsInterface.connect(user2).vote(1, oneLPToken, true)
-      await DAOVotingsInterface.connect(Admin).vote(1, oneLPToken, true)
+      await DAOVotingsInterface.connect(TokenOwner).vote(1, oneLPToken, true)
 
       await passDurationTime();
       await DAOVotingsInterface.connect(user2).finishProposal(1)

@@ -14,7 +14,7 @@ On trade round you can add an order for selling your ACDMT for ETH, also you can
 ### Notice!
 Each order has info with amount of ACDMT and price for all amount, not for piece.
 
-## Run ```npx hardaht help``` to see all avalibale tasks
+## Run ```npx hardaht help``` to see all availabale tasks
 
 ## GOERLI testnet
 

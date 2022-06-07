@@ -249,7 +249,7 @@ contract DAOVotings is AccessControl {
     function proposalCall(address contractAddress, bytes memory callData)
         private
     {
-        (bool success, ) = contractAddress.call{value: 0}(callData);
+        (bool success, ) = contractAddress.call(callData);
         require(success, "Error proposalcall");
     }
 
