@@ -25,6 +25,8 @@ export default function() {
   let UNIV2Address = "0xda6F7786E2b62DdD7d1dD848902Cc49b68805e0a"
   let StakingAddress = "0xE189b83A668E41231af9753705748261018AC59c"
   const oneLPToken: BigNumber = ethers.utils.parseEther("1")
+  let ADMIN = "0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42"
+  let BURNER_ROLE = "0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848"
 
   beforeEach(async function() {
     await ethers.provider.send("hardhat_impersonateAccount", ["0xa162b39f86a7341948a2e0a8dac3f0dff071d509"]);
@@ -42,6 +44,9 @@ export default function() {
 
     await IUNIV2.connect(TokenOwner).transfer(user1.address, oneLPToken)
     await IUNIV2.connect(TokenOwner).transfer(user2.address, oneLPToken)
+
+    await XXXToken.connect(TokenOwner).grantRole(ADMIN, DAOVotingsInterface.address)
+    await XXXToken.connect(TokenOwner).grantRole(BURNER_ROLE, DAOVotingsInterface.address)
   });
 
   afterEach(async function() {
@@ -329,6 +334,14 @@ export default function() {
       await IUNIV2.connect(user2).approve(Staking.address, oneLPToken)
       await Staking.connect(user2).stake(oneLPToken)
     });
+
+    it("Should return 'true' if deployer has role 'ADMIN'", async function () {
+      expect (await XXXToken.hasRole(ADMIN, DAOVotingsInterface.address)).to.equal(true)
+    })
+
+    it("Should return 'true' if deployer has role 'BURNER_ROLE'", async function () {
+      expect (await XXXToken.hasRole(BURNER_ROLE, DAOVotingsInterface.address)).to.equal(true)
+    })
 
     it("Should throw error 'SenderDontHasRights' with args", async function() {
       expect(DAOVotingsInterface.connect(user1).increaseXXXprice()).to.be.revertedWith("Must called throw proposal")

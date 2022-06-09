@@ -8,7 +8,6 @@ import { solidity } from "ethereum-waffle"
 chai.use(solidity);
 
 export default function() {
-// describe("Staking contract", function () {
   let Staking;
   let StakingInterface: Contract;
   let owner: SignerWithAddress;
@@ -241,5 +240,4 @@ export default function() {
       expect(StakingInterface.connect(acc2).setDepositDuration(acc2.address, 0)).to.be.revertedWith("You dont have rights to change it")
     })
   })
-// })
 }

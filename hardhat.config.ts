@@ -9,9 +9,11 @@ import "solidity-coverage";
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
 
+
 dotenv.config();
 
 import "./tasks/tasks"
+
 
 const config: HardhatUserConfig = {
   solidity: "0.8.4",

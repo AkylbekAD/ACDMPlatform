@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IERC20.sol";
+import "hardhat/console.sol";
 
 /// @dev Throw this error if account without rights try to use chairman functions
 error SenderDontHasRights(address sender);
@@ -264,12 +265,12 @@ contract DAOVotings is AccessControl {
         require(msg.sender == address(this), "Must called throw proposal");
 
         address WETH = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
-        address UNIV2 = 0xda6F7786E2b62DdD7d1dD848902Cc49b68805e0a;
+        address UNIV2 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
         address XXXToken = 0x125281199964620d35d63886F492b79415926661;
         address[] memory path = new address[](2); 
         path[0] = WETH;
-        path[1] = UNIV2;
-        uint256[] memory amount = IUniswapV2Router02(UNIV2).swapExactETHForTokens{value: getBalance()}(0, path, address(this), block.timestamp + 150);
+        path[1] = XXXToken;
+        uint256[] memory amount = IUniswapV2Router02(UNIV2).swapExactETHForTokens{value: getBalance()}(0, path, address(this), block.timestamp + 120);
 
         IERC20(XXXToken).burn(address(this), amount[1]);
     }

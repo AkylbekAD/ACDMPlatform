@@ -8,8 +8,6 @@ import { solidity } from "ethereum-waffle"
 chai.use(solidity);
 
 export default function() {
-// describe("ACDMToken contract", function () {
-
   let ACDMToken;
   let ACDMTokenInterface: Contract;
   let owner: SignerWithAddress;
@@ -143,5 +141,4 @@ export default function() {
       expect(ACDMTokenInterface.connect(acc1).approve(acc2.address,100000000)).to.be.revertedWith("Not enough tokens to approve")
     })
   })
-// })
 }
